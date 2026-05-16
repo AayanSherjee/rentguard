@@ -27,8 +27,7 @@ export default function App() {
     setError('');
     setResult(null);
     try {
-      const res = await fetch('http://localhost:5000/api/analyze', {
-        method: 'POST',
+const res = await fetch('https://rentguard-pink.vercel.app/api/analyze', {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: form.text,
