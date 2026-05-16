@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Auth from './Auth';
+import History from './History';
 
 const getVerdictClass = (verdict) => {
   if (verdict === 'Safe') return 'verdict-safe';
@@ -13,10 +15,27 @@ const getVerdictEmoji = (verdict) => {
 };
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState('analyze');
   const [form, setForm] = useState({ text: '', price: '', city: 'karachi', area: '', imageUrl: '' });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('name');
+    if (token && name) setUser(name);
+  }, []);
+
+  const handleLogin = (name) => setUser(name);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('name');
+    setUser(null);
+    setResult(null);
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -27,8 +46,13 @@ export default function App() {
     setError('');
     setResult(null);
     try {
-const res = await fetch('https://rentguard-pink.vercel.app/api/analyze', {        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const token = localStorage.getItem('token');
+      const res = await fetch('https://rentguard-pink.vercel.app/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           text: form.text,
           price: Number(form.price),
@@ -39,23 +63,43 @@ const res = await fetch('https://rentguard-pink.vercel.app/api/analyze', {      
       });
       const data = await res.json();
       setResult(data);
-    } catch (err) {
+    } catch {
       setError('Could not connect to server. Make sure the backend is running.');
     }
     setLoading(false);
   };
 
-const allFlags = result
-  ? [
-      ...(result.breakdown.nlp?.flags || []),
-      ...(result.breakdown.price?.flags || []),
-      ...(result.breakdown.image?.flags || [])
-    ]
-  : [];
+  const allFlags = result
+    ? [
+        ...(result.breakdown.nlp?.flags || []),
+        ...(result.breakdown.price?.flags || []),
+        ...(result.breakdown.image?.flags || [])
+      ]
+    : [];
+
+  if (!user) return <Auth onLogin={handleLogin} />;
+  if (page === 'history') return <History onBack={() => setPage('analyze')} />;
+
   return (
     <div className="container">
-      <h1>Rent<span>Guard</span></h1>
-      <p className="subtitle">AI-powered rental scam detector: paste a listing and get a trust score instantly.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <h1>Rent<span>Guard</span></h1>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => setPage('history')}
+            style={{ width: 'auto', padding: '8px 16px', background: '#f0f0f0', color: '#333', fontSize: '14px' }}
+          >
+            History
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{ width: 'auto', padding: '8px 16px', background: '#fee2e2', color: '#dc2626', fontSize: '14px' }}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+      <p className="subtitle">Welcome, {user} — paste a listing to check if it's a scam.</p>
 
       <div className="card">
         <textarea
@@ -123,10 +167,10 @@ const allFlags = result
               <span>Price benchmarking</span>
               <span className="module-score">{result.breakdown.price.score}/100</span>
             </div>
-           <div className="module-row">
-  <span>Reverse image search</span>
-  <span className="module-score">{result.breakdown.image?.score ?? 'N/A'}/100</span>
-</div>
+            <div className="module-row">
+              <span>Reverse image search</span>
+              <span className="module-score">{result.breakdown.image?.score ?? 'N/A'}/100</span>
+            </div>
           </div>
 
           <div className="card">
