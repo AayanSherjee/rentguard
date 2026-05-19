@@ -2,7 +2,10 @@ const axios = require('axios');
 
 const LISTING_SITES = [
   'zameen.com', 'olx.com.pk', 'graana.com', 'lamudi.pk',
-  'propnow.pk', 'bayut.pk', 'jagah.com', 'bproperty.com'
+  'propnow.pk', 'bayut.pk', 'jagah.com', 'bproperty.com',
+  'facebook.com', 'instagram.com', 'tiktok.com', 'youtube.com',
+  'twitter.com', 'x.com', 'linkedin.com', 'pinterest.com',
+  'whatsapp.com', 'snapchat.com'
 ];
 
 function isListingSite(url) {
