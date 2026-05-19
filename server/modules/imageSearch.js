@@ -1,5 +1,19 @@
 const axios = require('axios');
 
+const LISTING_SITES = [
+  'zameen.com', 'olx.com.pk', 'graana.com', 'lamudi.pk',
+  'propnow.pk', 'bayut.pk', 'jagah.com', 'bproperty.com'
+];
+
+function isListingSite(url) {
+  try {
+    const hostname = new URL(url).hostname.replace('www.', '');
+    return LISTING_SITES.some(site => hostname.includes(site));
+  } catch {
+    return false;
+  }
+}
+
 async function runImageSearch(imageUrl) {
   if (!imageUrl || imageUrl.trim() === '') {
     return { score: 70, flags: ['No image URL provided — skipping image check'] };
@@ -20,24 +34,30 @@ async function runImageSearch(imageUrl) {
       return { score: 90, flags: [] };
     }
 
-    const domains = results.slice(0, 5).map(r => {
-      try { return new URL(r.link).hostname; }
-      catch { return r.link; }
-    });
+    const suspiciousSites = results.filter(r => !isListingSite(r.link));
+    const listingSites = results.filter(r => isListingSite(r.link));
 
-    if (results.length >= 5) {
+    if (suspiciousSites.length >= 5) {
+      const domains = suspiciousSites.slice(0, 3).map(r => {
+        try { return new URL(r.link).hostname; } catch { return r.link; }
+      });
       return {
         score: 10,
-        flags: [`Image found on ${results.length}+ other sites — likely stolen (${domains.slice(0, 3).join(', ')})`]
+        flags: [`Image found on ${suspiciousSites.length} unrelated sites — likely stolen (${domains.join(', ')})`]
       };
-    } else if (results.length >= 2) {
+    } else if (suspiciousSites.length >= 2) {
       return {
         score: 45,
-        flags: [`Image appears on ${results.length} other sites — verify authenticity`]
+        flags: [`Image appears on ${suspiciousSites.length} non-listing sites — verify authenticity`]
+      };
+    } else if (listingSites.length > 0) {
+      return {
+        score: 85,
+        flags: [`Image found on ${listingSites.length} property listing site(s) — normal for legitimate listings`]
       };
     }
 
-    return { score: 85, flags: [] };
+    return { score: 90, flags: [] };
 
   } catch (err) {
     return { score: 70, flags: ['Image search unavailable — skipped'] };
